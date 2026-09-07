@@ -132,3 +132,100 @@ grep "ERROR" logs/server.log | cut -d' ' -f5 | cut -d'=' -f2 | sort | uniq -c | 
 
 ---
 
+## Task 05 - Pipeline
+
+### 题目要求
+在 `logs/access.log` 中找出出现次数最多的 IP 地址（访问频率最高的客户端 IP），将结果写入 `output/05_top_ip.txt`。
+
+日志格式示例：
+```text
+192.168.1.2 - - [2026-08-31 10:00:01] "GET /index.html HTTP/1.1" 200
+```
+
+### 解题过程
+
+```bash
+cut -d' ' -f1 logs/access.log | sort | uniq -c | sort -nr | head -1 | awk '{print $2}' > output/05_top_ip.txt
+```
+- `cut -d' ' -f1 logs/access.log`：按空格切分每行，取第 1 列，即 IP 地址。
+- `sort`：把相同 IP 排到一起（`uniq` 只能合并相邻的重复行，所以必须先排序）。
+- `uniq -c`：合并相邻重复行并在行首标注出现次数。
+- `sort -nr`：按行首次数按数字倒序排列，次数最多的排在最上面。
+- `head -1`：只取第一行（即 `次数 IP`）。
+- `awk '{print $2}'`：取第 2 个字段，即 IP 本身，去掉前面的次数。
+- `> output/05_top_ip.txt`：把最终结果重定向写入文件。
+
+结果为 `192.168.1.2`。
+
+#### 检查
+```bash
+./check.sh 05
+```
+结果通过。
+
+### 运行结果截图
+
+![Task 05 运行结果](./notes/screenshots/05_pipeline_result.png)
+
+### 学习感悟
+
+> （此处待补充）
+
+---
+
+## Task 06 - Streams & Redirection
+
+### 题目要求
+运行 `tools/check-project` 脚本，分别完成：
+1. 只把标准输出（stdout）写入 `output/06_stdout.txt`。
+2. 只把标准错误（stderr）写入 `output/06_stderr.txt`。
+3. 同时在终端上看到输出并保存到 `output/06_tee.txt`。
+
+### 解题过程
+
+#### 任务 1：只捕获 stdout
+```bash
+./tools/check-project > output/06_stdout.txt
+```
+`>` 只重定向标准输出（文件描述符 1），stderr 仍然打印到终端。结果文件包含 4 行正常输出：
+```text
+Checking config...
+Checking data...
+Checking scripts...
+Done
+```
+
+#### 任务 2：只捕获 stderr
+```bash
+./tools/check-project 2> output/06_stderr.txt
+```
+`2>` 重定向文件描述符 2（标准错误），正常输出仍上屏。结果文件包含 2 行错误：
+```text
+ERROR: missing cache file
+ERROR: invalid permission
+```
+
+#### 任务 3：输出同时上屏并落盘
+```bash
+./tools/check-project | tee output/06_tee.txt
+```
+`tee` 像"三通管"：把 stdin 的内容一份写到屏幕、一份写到文件。`|` 管道把脚本的 stdout 送给 `tee`。结果文件内容与任务 1 相同（因为脚本输出全走 stdout）。
+
+#### 检查
+```bash
+./check.sh 06
+```
+结果通过。
+
+### 运行结果截图
+
+![Task 06 运行结果 1](./notes/screenshots/06_streams_redirection_result_1.png)
+
+![Task 06 运行结果 2](./notes/screenshots/06_streams_redirection_result_2.png)
+
+### 学习感悟
+
+> （此处待补充）
+
+---
+
