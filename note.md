@@ -229,3 +229,174 @@ ERROR: invalid permission
 
 ---
 
+## Task 07 - Analyze Script
+
+### 题目要求
+编写 `scripts/analyze.sh FILE`，用于分析指定日志文件，输出：
+```text
+Total ERROR: <number>
+Top Code: <code>
+```
+并满足：
+1. 日志文件通过命令行参数指定，不能写死路径。
+2. 没有参数时输出用法提示并返回非零状态。
+3. 文件不存在时输出错误信息并返回非零状态。
+4. 正常输入时正确分析并返回成功状态。
+
+### 解题过程
+
+核心命令：
+```bash
+cat > scripts/analyze.sh << 'EOF'
+#!/usr/bin/env bash
+
+# Task 07: 分析日志文件
+# Usage: ./scripts/analyze.sh FILE
+
+if [[ $# -ne 1 ]]; then
+    echo "Usage: ./scripts/analyze.sh FILE"
+    exit 1
+fi
+
+log_file="$1"
+
+if [[ ! -f "$log_file" ]]; then
+    echo "Error: file '$log_file' not found"
+    exit 1
+fi
+
+total_error=$(grep "ERROR" "$log_file" | wc -l)
+top_code=$(
+    grep "ERROR" "$log_file" \
+    | cut -d' ' -f5 \
+    | cut -d'=' -f2 \
+    | sort \
+    | uniq -c \
+    | sort -nr \
+    | head -1 \
+    | awk '{print $2}'
+)
+
+echo "Total ERROR: $total_error"
+echo "Top Code: $top_code"
+EOF
+chmod +x scripts/analyze.sh
+```
+
+验证三种情况：
+```bash
+./scripts/analyze.sh              # 输出 Usage，返回 1
+./scripts/analyze.sh not-exist.log # 输出 Error，返回 1
+./scripts/analyze.sh logs/server.log
+# 输出：
+# Total ERROR: 7
+# Top Code: 500
+```
+
+检查：
+```bash
+./check.sh 07
+# [PASS] 07 Analyze Script
+```
+
+### 运行结果截图
+
+![Task 07 运行结果 1](./notes/screenshots/07_analyze_script_1.png)
+
+![Task 07 运行结果 2](./notes/screenshots/07_analyze_script_2.png)
+
+### 学习感悟
+
+> （此处待补充）
+
+---
+
+## Task 08 - Script Debug
+
+### 题目要求
+项目中已有 `scripts/batch-copy.sh`，用于把多个文件复制到目标目录。该脚本在普通文件名下能工作，但遇到带空格的文件名会出错。需要修复它，并回答 `answers/08.md` 中的问题：为什么 Shell 中 `$var` 和 `"$var"` 有时会得到不同结果？
+
+### 解题过程
+
+#### 修复前的问题脚本
+```bash
+#!/usr/bin/env bash
+# Task 08: this script is intentionally buggy.
+# Usage: ./scripts/batch-copy.sh DEST FILE...
+
+destination=$1
+shift
+
+mkdir -p $destination
+
+for file in $@
+do
+    cp $file $destination/
+done
+```
+
+#### 修复后的脚本
+```bash
+cat > scripts/batch-copy.sh << 'EOF'
+#!/usr/bin/env bash
+
+# Task 08: copy files to destination directory
+# Usage: ./scripts/batch-copy.sh DEST FILE...
+
+destination="$1"
+shift
+
+mkdir -p "$destination"
+
+for file in "$@"
+do
+    cp "$file" "$destination/"
+done
+EOF
+chmod +x scripts/batch-copy.sh
+```
+
+验证：
+```bash
+mkdir -p /tmp/backup
+./scripts/batch-copy.sh /tmp/backup data/files/report.txt "data/files/My Report.txt"
+ls -la /tmp/backup/
+# 输出包含：
+# My Report.txt
+# report.txt
+```
+
+#### 思考题回答
+```bash
+cat > answers/08.md << 'EOF'
+# Task 08 Answer
+
+Shell 在没有引号的情况下会先展开变量，然后对结果进行“分词”和通配符展开。
+
+例如，若 `file="My Report.txt"`，则：
+
+- `$file` 会被展开成 `My Report.txt`，Shell 再按空白把它切成两个参数 `My` 和 `Report.txt`，导致 `cp $file dest/` 变成 `cp My Report.txt dest/`，复制失败。
+- `"$file"` 会把整个展开结果当作一个整体，保持为一个参数，因此 `cp "$file" dest/` 能正确处理带空格的文件名。
+
+同理，`$@` 和 `"$@"` 的区别在于：前者展开后会被再次分词，后者会把每个原始参数作为一个独立字符串保留。处理文件名等可能包含空格的参数时，应该始终使用 `"$@"` 和加引号的变量。
+EOF
+```
+
+检查：
+```bash
+./check.sh 08
+# [PASS] 08 Script Debug
+```
+
+### 运行结果截图
+
+![Task 08 运行结果 1](./notes/screenshots/08_batch_copy_1.png)
+
+![Task 08 运行结果 2](./notes/screenshots/08_batch_copy_2.png)
+
+### 学习感悟
+
+> （此处待补充）
+
+---
+
