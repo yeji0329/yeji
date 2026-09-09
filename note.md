@@ -400,3 +400,83 @@ EOF
 
 ---
 
+## Task 09 - Process Hunter (Extra)
+
+### 题目要求
+附加题（不计入主线完成度）。项目提供 `./scripts/start-workers.sh`，会启动三个后台 worker：
+- `worker-alpha`
+- `worker-beta`
+- `worker-gamma`
+
+其中 `worker-beta` 出现异常，需要：
+1. 找到 `worker-beta` 对应的进程；
+2. 确认它的 PID；
+3. 正常终止它；
+4. 保证 `worker-alpha` 和 `worker-gamma` 仍在运行。
+
+限制：不能关闭终端、不能重启系统、不能粗暴结束所有相关进程、不能使用明显影响大量无关进程的命令。
+
+### 解题过程
+
+启动 worker：
+```bash
+./scripts/start-workers.sh
+```
+
+查看所有 worker 进程：
+```bash
+pgrep -af worker-
+```
+输出示例：
+```text
+589 worker-alpha -c while true; do sleep 60; done
+590 worker-beta -c while true; do sleep 60; done
+591 worker-gamma -c while true; do sleep 60; done
+```
+
+读取 worker-beta 的 PID：
+```bash
+cat .runtime/worker-beta.pid
+# 590
+```
+
+正常终止 worker-beta：
+```bash
+kill $(cat .runtime/worker-beta.pid)
+```
+`kill` 默认发送 SIGTERM（15），属于正常终止请求。
+
+验证 beta 已停止、alpha/gamma 仍存活：
+```bash
+pgrep -f "worker-beta"      # 无输出，表示已终止
+pgrep -f "worker-alpha"     # 输出 PID
+pgrep -f "worker-gamma"     # 输出 PID
+
+kill -0 $(cat .runtime/worker-alpha.pid) && echo "alpha alive"
+kill -0 $(cat .runtime/worker-beta.pid)  && echo "beta alive"  || echo "beta gone"
+kill -0 $(cat .runtime/worker-gamma.pid) && echo "gamma alive"
+```
+预期输出：
+```text
+alpha alive
+-bash: kill: (590) - No such process
+beta gone
+gamma alive
+```
+
+检查：
+```bash
+./check.sh 09
+# [PASS] 09 Process Hunter (Extra)
+```
+
+### 运行结果截图
+
+![Task 09 运行结果](./notes/screenshots/09_process_hunter_result.png)
+
+### 学习感悟
+
+> （此处待补充）
+
+---
+
