@@ -1,3 +1,4 @@
 .runtime/
 *.tmp
 .DS_Store
+.workbuddy/
